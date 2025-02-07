@@ -65,7 +65,16 @@ public:
 
                 // if curr==prev, means this line is null
                 // in Trino, null row's any subscript is still null
-                if ((curr != prev) && (subscript > (curr - prev))) {
+                bool is_null = [&]() {
+                    if (curr == prev) {
+                        return true;
+                    }
+                    if (auto* nullable = dynamic_cast<NullableColumn*>(arg0.get()); nullable != nullptr) {
+                        return nullable->is_null(i - 1);
+                    }
+                    return false;
+                }();
+                if (!is_null && (subscript > (curr - prev))) {
                     return Status::InvalidArgument(
                             strings::Substitute("Array subscript must be less than or equal to array length: $0 > $1",
                                                 subscript, curr - prev));
